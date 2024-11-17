@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Store</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    {{!-- <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script> --}}
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <img src="/img/banner.png" alt="Guitar Store Logo">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="/">Inicio</a></li>
+                    <li><a href="/products" id="productsLink">Productos</a></li>
+                    <li id="cartLink" style="display: none;">
+                        <a href="/cart">Carrito <span id="cartCount">0</span></a>
+                    </li>
+                    <li id="loginLink"><a href="/login">Iniciar sesión</a></li>
+                    <li id="registerLink"><a href="/register">Registrarse</a></li>
+                    <li id="profileLink" style="display: none;"><a href="/profile">Perfil</a></li>
+                    <li id="adminLink" style="display: none;"><a href="/admin/stock">Administrador</a></li>
+                    <li id="logoutLink" style="display: none;"><a href="#" onclick="logout()">Cerrar sesión</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {{{body}}}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="/img/banner.png" alt="Guitar Store Logo">
+            </div>
+            <div class="footer-links">
+                <a href="/#">Sobre nosotros</a>
+                <a href="/#">Contacto</a>
+                <a href="/#">Términos y condiciones</a>
+            </div>
+            <div class="social-media">
+                <a href="#" class="social-icon">Facebook</a>
+                <a href="#" class="social-icon">Instagram</a>
+                <a href="#" class="social-icon">Twitter</a>
+            </div>
+        </div>
+        <div class="copyright">
+            © 2024 Guitar Store. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <script src="/js/rockAlerts.js"></script>
+    <script>
+    let isAuthenticated = false;
+let isAdmin = false;
+
+async function checkAuth() {
+    try {
+        const response = await fetch('/api/sessions/check-auth', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            const data = await response.json();
+            isAuthenticated = data.isAuthenticated;
+            isAdmin = data.user && data.user.role === 'admin';
+            if (isAuthenticated && data.user.cart) {
+                updateCartCount(data.user.cart);
+            }
+        } else {
+            isAuthenticated = false;
+            isAdmin = false;
+        }
+    } catch (error) {
+        console.error('Error checking auth:', error);
+        isAuthenticated = false;
+        isAdmin = false;
+    }
+    updateNavigation();
+}
+
+function updateNavigation() {
+    document.getElementById('cartLink').style.display = isAuthenticated ? 'inline' : 'none';
+    document.getElementById('productsLink').style.display = isAuthenticated ? 'inline' : 'none';
+    document.getElementById('profileLink').style.display = isAuthenticated ? 'inline' : 'none';
+    document.getElementById('logoutLink').style.display = isAuthenticated ? 'inline' : 'none';
+    document.getElementById('loginLink').style.display = isAuthenticated ? 'none' : 'inline';
+    document.getElementById('registerLink').style.display = isAuthenticated ? 'none' : 'inline';
+    document.getElementById('adminLink').style.display = isAdmin ? 'inline' : 'none';
+}
+
+async function updateCartCount(cart) {
+    if (!isAuthenticated) return;
+    try {
+        const response = await fetch('/api/carts/count');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('cartCount').textContent = data.count;
+        }
+    } catch (error) {
+        console.error('Error updating cart count:', error);
+    }
+}
+
+async function logout() {
+    try {
+        const response = await fetch('/api/sessions/logout', { method: 'POST' });
+        if (response.ok) {
+            isAuthenticated = false;
+            isAdmin = false;
+            updateNavigation();
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', checkAuth);
+</script>
